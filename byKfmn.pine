@@ -1,0 +1,184 @@
+//@version=5
+//@kfmn
+indicator("SILVER BULLET TIME ZONE ICT [kfmn]Jake copy", overlay = true, max_lines_count = 500, max_labels_count = 500)
+
+utc_offset = input.int(-5, title="UTC Offset", minval=-12, maxval=12, tooltip="Select UTC offset for New York local time. In summer it is -4, in winter -5")
+ 
+//------------------------------------------------------------------------------
+//Settings
+//-----------------------------------------------------------------------------
+
+//London 3:00-4:00 AM
+showLDOAM = input(true,   '3:00-4:00 AM', inline = 'LDOAM', group = 'time zone')
+LDOAMCss  = input.color(color.new(#00bcd4, 90), '', inline = 'LDOAM', group = 'time zone')
+
+//NY 10:00-11:00 AM
+showNYLAM = input(true, '10:00-11:00 AM', inline = 'NYLAM', group = 'time zone')
+NYLAMCss  = input.color(color.new(#00bcd4, 90), '', inline = 'NYLAM', group = 'time zone')
+
+//NY 2:00-3:00 PM
+showNYEPM = input(true, '2:00-3:00 PM', inline = 'NYEPM', group = 'time zone')
+NYEPMCss  = input.color(color.new(#00bcd4, 90), '', inline = 'NYEPM', group = 'time zone')
+
+//Fib Retracements
+showFibs = input(true,  'Show Retracements', group = 'Fib Retracements')
+extend   = input(false,  'Extend', group = 'Fib Retracements')
+
+//Fib -0.5
+fibm5      = input(false, '', inline = '-500', group = 'Fib Retracements')
+fib5mValue = input(-0.5, '', inline = '-500', group = 'Fib Retracements')
+fib5mCss   = input(color.rgb(255, 0, 0), '', inline = '-500', group = 'Fib Retracements')
+
+//Fib 0
+fib0      = input(true, '', inline = '0', group = 'Fib Retracements')
+fib0Value = input(0., '', inline = '0', group = 'Fib Retracements')
+fib0Css   = input(color.gray, '', inline = '0', group = 'Fib Retracements')
+
+//Fib 0.236
+fib236      = input(false, '', inline = '236', group = 'Fib Retracements')
+fib236Value = input(0.236, '', inline = '236', group = 'Fib Retracements')
+fib236Css   = input(color.new(#00bcd4, 0), '', inline = '236', group = 'Fib Retracements')
+
+//Fib 0.382
+fib382      = input(false, '', inline = '382', group = 'Fib Retracements')
+fib382Value = input(0.382, '', inline = '382', group = 'Fib Retracements')
+fib382Css   = input(color.new(#00bcd4, 0), '', inline = '382', group = 'Fib Retracements')
+
+//Fib 0.5
+fib5      = input(false, '', inline = '500', group = 'Fib Retracements')
+fib5Value = input(0.5, '', inline = '500', group = 'Fib Retracements')
+fib5Css   = input(color.green, '', inline = '500', group = 'Fib Retracements')
+
+//Fib 0.618
+fib618      = input(false, '', inline = '618', group = 'Fib Retracements')
+fib618Value = input(0.618, '', inline = '618', group = 'Fib Retracements')
+fib618Css   = input(color.new(#00bcd4, 0), '', inline = '618', group = 'Fib Retracements')
+
+//Fib 0.782
+fib782      = input(false, '', inline = '782', group = 'Fib Retracements')
+fib782Value = input(0.782, '', inline = '782', group = 'Fib Retracements')
+fib782Css   = input(color.new(#00bcd4, 0), '', inline = '782', group = 'Fib Retracements')
+
+//Fib 1
+fib1      = input(true, '', inline = '1', group = 'Fib Retracements')
+fib1Value = input(1., '', inline = '1', group = 'Fib Retracements')
+fib1Css   = input(color.gray, '', inline = '1', group = 'Fib Retracements')
+
+//Fib 1.5
+fib1500      = input(false, '', inline = '1500', group = 'Fib Retracements')
+fib1500Value = input(1.5, '', inline = '1500', group = 'Fib Retracements')
+fib1500Css   = input(color.rgb(255, 0, 0), '', inline = '1500', group = 'Fib Retracements')
+
+//-----------------------------------------------------------------------------
+//Functions
+//-----------------------------------------------------------------------------
+n = bar_index
+
+avg(val, max, min)=> 
+    var float fib = na
+
+    if extend
+        fib := val * min + (1 - val) * max
+    else
+        fib := val * max + (1 - val) * min
+
+fib_values()=>
+    var fibs = array.from(
+     fibm5 ? fib5mValue : na
+      ,fib0 ? fib0Value : na
+      , fib236 ? fib236Value : na
+      , fib382 ? fib382Value : na
+      , fib5 ? fib5Value : na
+      , fib618 ? fib618Value : na
+      , fib782 ? fib782Value : na
+      , fib1 ? fib1Value : na
+     , fib1500 ? fib1500Value : na)
+
+display_retracements(session)=>
+    var lines = array.new_line(0)
+    fibs = fib_values()
+
+    var float max = na
+    var float min = na
+
+    if session and not session[1]
+        max := high
+        min := low
+        
+        lines := array.from(
+          line.new(n,na,na,na, color = fib5mCss)
+          ,line.new(n,na,na,na,   color = fib0Css)
+          , line.new(n,na,na,na, color = fib236Css)
+          , line.new(n,na,na,na, color = fib382Css)
+          , line.new(n,na,na,na, color = fib5Css)
+          , line.new(n,na,na,na, color = fib618Css)
+          , line.new(n,na,na,na, color = fib782Css)
+          , line.new(n,na,na,na, color = fib1Css)
+          , line.new(n,na,na,na, color = fib1500Css))
+    
+    if session
+        max := math.max(high, max)
+        min := math.min(low, min)
+
+        for [i, lvl] in lines
+            fib = array.get(fibs, i)
+
+            line.set_y1(lvl, avg(fib, max, min))
+            line.set_xy2(lvl, n, avg(fib, max, min))
+    else if extend
+        for [i, lvl] in lines
+            fib = array.get(fibs, i)
+
+            line.set_y1(lvl, avg(fib, max, min))
+            line.set_xy2(lvl, n, avg(fib, max, min))
+
+labels(session, css, txt)=>
+    var label lbl = na
+    var float max = na 
+    var int anchor = na
+    var get_css = color.rgb(color.r(css), color.g(css), color.b(css))
+
+    if session and not session[1]
+        max := high
+        anchor := time
+        
+        lbl := label.new(anchor, max
+          , txt
+          , xloc.bar_time
+          , color = #ffffff00
+          , style = label.style_label_down
+          , textcolor = get_css
+          , size = size.small)
+    
+    if session
+        max := math.max(high, max)
+
+        label.set_x(lbl, int(math.avg(time, anchor)))
+        label.set_y(lbl, max)
+
+
+//-----------------------------------------------------------------------------
+//Retracements
+//-----------------------------------------------------------------------------
+// Update times with UTC Offset
+LDOAM  = time(timeframe.period, "0300-0400", "UTC" + (utc_offset >= 0 ? "+" : "") + str.tostring(utc_offset)) and showLDOAM
+NYLAM  = time(timeframe.period, "1000-1100", "UTC" + (utc_offset >= 0 ? "+" : "") + str.tostring(utc_offset)) and showNYLAM
+NYEPM  = time(timeframe.period, "1400-1500", "UTC" + (utc_offset >= 0 ? "+" : "") + str.tostring(utc_offset)) and showNYEPM
+
+if showFibs
+    display_retracements(LDOAM or NYLAM or NYEPM)
+
+//-----------------------------------------------------------------------------
+//Labels
+//-----------------------------------------------------------------------------
+labels(LDOAM, LDOAMCss, '3:00-4:00 AM')
+labels(NYLAM, NYLAMCss, '10:00-11:00 AM')
+labels(NYEPM, NYEPMCss, '2:00-3:00 PM')
+
+//-----------------------------------------------------------------------------
+//Background
+//-----------------------------------------------------------------------------
+bgcolor(LDOAM ? LDOAMCss : na, editable = false)
+bgcolor(NYLAM ? NYLAMCss : na, editable = false)
+bgcolor(NYEPM ? NYEPMCss : na, editable = false)
+//-----------------------------------------------------------------------------
