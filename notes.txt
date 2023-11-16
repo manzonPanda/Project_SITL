@@ -1,0 +1,17 @@
+28-F & !F  x
+29-F & !F  x
+30-T & !F  ✔ inside SB 3-4
+31-T & !T  x
+32-T & !T  x
+....
+60-!F & T  ✔ outside SB 3-4
+61-!F & F  x
+....
+	current bar is outside, previous bar is inside
+
+
+
+
+
+
+    

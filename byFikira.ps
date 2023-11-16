@@ -27,7 +27,7 @@ cSupLine    = input.color (#b22833  ,                   ''                 , inl
 cResLine    = input.color (#3e89fa  ,                   ''                 , inline='TG' , group='Targets - Support/Resistance')
 
 showSB      = input.bool  (    true   ,             'SB session'             , inline='SB' , group='Show'                        )
-col_SB      = input.color (#b2b5be50,                '     '               , inline='SB' , group='Show'                        )  
+col_SB      = input.color (#b2b5be50,                '    '               , inline='SB' , group='Show'                        )  
 showZZ      = input.bool  (   false   ,                'Trend'               ,               group='Show'                        )
 show_HTFc   = input.bool  (   false   ,             'HTF Candles'            ,               group='Show'                        )
 show_minFr  = input.bool  (   false   ,        'Minimum Trade Framework'     ,               group='Show'                        )
@@ -584,8 +584,7 @@ if strSB
     min := 10e6
     max :=  0.
     if showSB
-        l_SB.unshift(line.new(n, close, n, close + minT
-                   , color= col_SB, extend=extend.both))
+        l_SB.unshift(line.new(n, close, n, close + minT, color= col_SB, extend=extend.both))
 
 if endSB
     if showSB
