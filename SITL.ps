@@ -12,12 +12,16 @@ SB_PM_per = "America/New_York".timeSess("1400-1500") // period/session ~ The PM 
 col_SB      = input.color (#6c00d1f5,                '    '               , inline='SB' , group='Show'                        )  
 minT        = syminfo.mintick
 
+//-----------------------------------------------------------------------------}
+//Variables
+//-----------------------------------------------------------------------------{
 tfs = (60 / (timeframe.in_seconds(timeframe.period) / 60)) / 2
-
 is_in_SB  = SB_LN_per or SB_AM_per or SB_PM_per
-
 strSB = is_in_SB  and not is_in_SB [1]
 endSB  = not is_in_SB and is_in_SB [1]
+bull_fvg = low > high[2] and close[1] > high[2]
+bear_fvg = high < low[2] and close[1] < low[2]
+
 
 if strSB
     line.new(bar_index, close, bar_index, close + 10, color= col_SB, extend=extend.both,width = 3)
