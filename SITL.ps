@@ -21,12 +21,23 @@ strSB = is_in_SB  and not is_in_SB [1]
 endSB  = not is_in_SB and is_in_SB [1]
 bull_fvg = low > high[2] and close[1] > high[2]
 bear_fvg = high < low[2] and close[1] < low[2]
-
+bullAreaCss      = input.color(color.new(color.teal, 50), 'Area'     , inline = 'bull')
+bullCss          = input.color(color.teal, 'FVG Level'               , inline = 'bull')
+tpCss  = input.color(color.new(color.teal, 50), 'TP'  , inline = 'TP and SL')
+slCss  = input.color(color.new(color.red, 50), 'SL' , inline = 'TP and SL')
+n = bar_index
 
 if strSB
     line.new(bar_index, close, bar_index, close + 10, color= col_SB, extend=extend.both,width = 3)
 if endSB
     line.new(bar_index, close, bar_index, close + 10, color= col_SB, extend=extend.both,width = 3)
+
+//draw FVGs only in the inside timezone
+if is_in_SB
+    if bull_fvg
+        box.new(n +6, low, n, high[2], na, bgcolor = bullCss) //FVG
+        box.new(n +3, high+3, n+1, low, na, bgcolor = tpCss) //TP
+        box.new(n +3, low[2], n+1, low, na, bgcolor = slCss) //SL
 
 
 plotchar(
