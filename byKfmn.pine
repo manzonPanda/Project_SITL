@@ -106,6 +106,7 @@ display_retracements(session)=>
         min := low
         
         lines := array.from(
+        //line.new(x1, y1, x2, y2, xloc, extend, color, style, width) → series line
           line.new(n,na,na,na, color = fib5mCss)
           ,line.new(n,na,na,na,   color = fib0Css)
           , line.new(n,na,na,na, color = fib236Css)
