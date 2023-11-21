@@ -28,7 +28,8 @@ startHrBeforeSB = is_in_hr_before_SB  and not is_in_hr_before_SB [1]
 bull_fvg = low > high[2] and close[1] > high[2]
 bear_fvg = high < low[2] and close[1] < low[2]
 bullAreaCss      = input.color(color.new(color.teal, 50), 'Area'     , inline = 'bull')
-bullCss          = input.color(color.rgb(174,196,255), 'FVG Level'               , inline = 'bull')
+bullCss          = input.color(color.rgb(174,196,255), 'FVG Level'   , inline = 'bull')
+bearCss          = input.color(color.red, 'FVG Level'                , inline = 'bear')
 tpCss  = input.color(color.new(color.teal, 50), 'TP'  , inline = 'TP and SL')
 slCss  = input.color(color.new(color.red, 50), 'SL' , inline = 'TP and SL')
 n = bar_index
@@ -64,11 +65,19 @@ if is_in_hr_before_SB
 //draw FVGs only in the inside timezone
 if is_in_SB
     if bull_fvg
-        avg = math.avg(low,high[2])
-        box.new(n +6, low, n, high[2], na, bgcolor = bullCss) //FVG
+        avg = math.avg(low,high[2]) //use this if you want your entry in the middle of FVG
+        //avg=low //use this if you want your entry exactly in the high of FVG
+        box.new(n +3, low, n-2, high[2], na, bgcolor = bullCss) //FVG
         box.new(n +3, (avg-low[2])*3+avg, n+1, avg, na, bgcolor = tpCss) //TP (RRR=3)
         box.new(n +3, low[2], n+1, avg, na, bgcolor = slCss) //SL
-        
+
+    else if bear_fvg
+        avg = math.avg(high,low[2])
+        box.new(n +3, high, n-2, low[2], na, bgcolor = bearCss) //FVG
+        box.new(n +3, (avg-high[2])*3+avg, n+1, avg, na, bgcolor = tpCss) //TP (RRR=3)
+        box.new(n +3, high[2], n+1, avg, na, bgcolor = slCss) //SL
+
+
     //extend lines of liquidity grabs in SB session
     line.set_y1(highLiquidityLine, max) 
     line.set_xy2(highLiquidityLine, n, max)
