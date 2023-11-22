@@ -36,9 +36,48 @@ n = bar_index
 var line highLiquidityLine = na
 var line lowLiquidityLine = na 
 lGcss   = input(color.rgb(255, 0, 0), '')
-
 var float max = na
 var float min = na
+float barHigh = na
+float barLow = na
+var string pattern = na
+var bool patternFound = na
+// Update times with UTC Offset - use in labels
+utc_offset = input.int(-5, title="UTC Offset", minval=-12, maxval=12, tooltip="Select UTC offset for New York local time. In summer it is -4, in winter -5")
+LDOAMCss  = input.color(color.new(#00bcd4, 90), '', inline = 'LDOAM', group = 'time zone')
+NYLAMCss  = input.color(color.new(#00bcd4, 90), '', inline = 'NYLAM', group = 'time zone')
+NYEPMCss  = input.color(color.new(#00bcd4, 90), '', inline = 'NYEPM', group = 'time zone')
+
+LDOAM  = time(timeframe.period, "0300-0400", "UTC" + (utc_offset >= 0 ? "+" : "") + str.tostring(utc_offset)) 
+NYLAM  = time(timeframe.period, "1000-1100", "UTC" + (utc_offset >= 0 ? "+" : "") + str.tostring(utc_offset)) 
+NYEPM  = time(timeframe.period, "1400-1500", "UTC" + (utc_offset >= 0 ? "+" : "") + str.tostring(utc_offset)) 
+
+//-----------------------------------------------------------------------------
+//Functions
+//-----------------------------------------------------------------------------
+labels(session, css, txt)=>
+    var label lbl = na
+    var float max = na 
+    var int anchor = na
+    var get_css = color.rgb(color.r(css), color.g(css), color.b(css))
+
+    if session and not session[1]
+        max := high
+        anchor := time
+        
+        lbl := label.new(anchor, max
+          , txt
+          , xloc.bar_time
+          , color = #ffffff00
+          , style = label.style_label_down
+          , textcolor = get_css
+          , size = size.large)
+    
+    if session
+        max := math.max(high, max)
+        label.set_text(lbl, txt) //update also the label text
+        label.set_x(lbl, int(math.avg(time, anchor)))
+        label.set_y(lbl, max+5)
 
 if startHrBeforeSB //find max and min 1hr before SB
     max := high //for getting the highest price 1hr before session
@@ -46,6 +85,8 @@ if startHrBeforeSB //find max and min 1hr before SB
     //initiate liquidity lines with na first
     highLiquidityLine:= line.new(n,na,na,na, color = lGcss, style = line.style_dotted, width = 3)
     lowLiquidityLine:= line.new(n,na,na,na, color = lGcss, style = line.style_dotted, width = 3)
+    patternFound:= false
+    //pattern:=""
 
 if strSB
     line.new(bar_index, close, bar_index, close + 10, color= col_SB, extend=extend.both,width = 3)
@@ -54,31 +95,40 @@ if endSB
     line.new(bar_index, close, bar_index, close + 10, color= col_SB, extend=extend.both,width = 3)
 
 if is_in_hr_before_SB
-    max := math.max(high, max) //check if there is a new high
-    min := math.min(low, min) //check if there is a new low
-
+    tempMax = math.max(high, max) //check if there is a new high
+    tempMin = math.min(low, min) //check if there is a new low
+    max:=tempMax
+    min:=tempMin
     line.set_y1(highLiquidityLine, max) 
     line.set_xy2(highLiquidityLine, n, max)
     line.set_y1(lowLiquidityLine, min) 
     line.set_xy2(lowLiquidityLine, n, min)
 
-//draw FVGs only in the inside timezone
+//draw FVGs only in the inside of SB timezone
 if is_in_SB
-    if bull_fvg
+    if low<min and not patternFound
+        pattern:="Reversal-below"
+        //pattern:= str.tostring(low) +'<' + str.tostring(min)
+        patternFound:=true
+    if high>max and not patternFound
+        pattern:="Reversal-top"
+        //pattern:= str.tostring(high) +'>' + str.tostring(max)
+        patternFound:=true
+
+    if patternFound and pattern=="Reversal-below"
         avg = math.avg(low,high[2]) //use this if you want your entry in the middle of FVG
         //avg=low //use this if you want your entry exactly in the high of FVG
         box.new(n +3, low, n-2, high[2], na, bgcolor = bullCss) //FVG
         box.new(n +3, (avg-low[2])*3+avg, n+1, avg, na, bgcolor = tpCss) //TP (RRR=3)
         box.new(n +3, low[2], n+1, avg, na, bgcolor = slCss) //SL
 
-    else if bear_fvg
+    else if patternFound and pattern=="Reversal-top"
         avg = math.avg(high,low[2])
         box.new(n +3, high, n-2, low[2], na, bgcolor = bearCss) //FVG
         box.new(n +3, (avg-high[2])*3+avg, n+1, avg, na, bgcolor = tpCss) //TP (RRR=3)
         box.new(n +3, high[2], n+1, avg, na, bgcolor = slCss) //SL
 
-
-    //extend lines of liquidity grabs in SB session
+    //extend lines of liquidity grabs to SB session
     line.set_y1(highLiquidityLine, max) 
     line.set_xy2(highLiquidityLine, n, max)
     line.set_y1(lowLiquidityLine, min) 
@@ -99,23 +149,19 @@ plotchar(
  //display    =  
  )
 
+//-----------------------------------------------------------------------------
+//Labels
+//-----------------------------------------------------------------------------
+labels(LDOAM, LDOAMCss, '3:00-4:00 AM \n Pattern found: '+pattern + '\n Max: '+str.tostring(max)+ '\n Min: '+str.tostring(min))
+labels(NYLAM, NYLAMCss, '10:00-11:00 AM \n Pattern found: '+pattern + '\n Max: '+str.tostring(max)+ '\n Min: '+str.tostring(min))
+labels(NYEPM, NYEPMCss, '2:00-3:00 PM \n Pattern found: '+pattern + '\n Max: '+str.tostring(max)+ '\n Min: '+str.tostring(min))
 
+//display info on the upper right corner
 if barstate.islast
     if timeframe.in_seconds(timeframe.period) > 15 * 60
         true
 
 //table.cell(tab, 0, 0, text = 'Max: '+max , text_color=#fcfcfc)
 table.cell(tab, 0, 0, text = 'Price: ' + str.tostring(close) +'\n' +'Max: '+str.tostring(max) +'\n' +'Min: '+str.tostring(min), text_color=#fcfcfc)
-
-//-----------------------------------------------------------------------------}
-//Set FVG
-//-----------------------------------------------------------------------------{
-
-//bullAreaCss      = input.color(color.new(color.teal, 50), 'Area'     , inline = 'bull')
-//bullCss          = input.color(color.teal, 'FVG Level'               , inline = 'bull')
-//n = bar_index
-//bull_fvg = low > high[2] and close[1] > high[2]
-//if bull_fvg
-//    box.new(n +3, low, n, high[2], na, bgcolor = bullCss)
 
 
