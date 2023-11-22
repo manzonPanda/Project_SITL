@@ -41,6 +41,7 @@ var float min = na
 float barHigh = na
 float barLow = na
 var string pattern = na
+var string patternInfo = na
 var bool patternFound = na
 // Update times with UTC Offset - use in labels
 utc_offset = input.int(-5, title="UTC Offset", minval=-12, maxval=12, tooltip="Select UTC offset for New York local time. In summer it is -4, in winter -5")
@@ -108,25 +109,27 @@ if is_in_hr_before_SB
 if is_in_SB
     if low<min and not patternFound
         pattern:="Reversal-below"
-        //pattern:= str.tostring(low) +'<' + str.tostring(min)
+        patternInfo:= ' ('+str.tostring(low) +'<' + str.tostring(min) +')'
         patternFound:=true
     if high>max and not patternFound
         pattern:="Reversal-top"
-        //pattern:= str.tostring(high) +'>' + str.tostring(max)
+        patternInfo:= ' ('+ str.tostring(high) +'>' + str.tostring(max) +')'
         patternFound:=true
 
-    if patternFound and pattern=="Reversal-below"
-        avg = math.avg(low,high[2]) //use this if you want your entry in the middle of FVG
-        //avg=low //use this if you want your entry exactly in the high of FVG
-        box.new(n +3, low, n-2, high[2], na, bgcolor = bullCss) //FVG
-        box.new(n +3, (avg-low[2])*3+avg, n+1, avg, na, bgcolor = tpCss) //TP (RRR=3)
-        box.new(n +3, low[2], n+1, avg, na, bgcolor = slCss) //SL
+    if patternFound and pattern=="Reversal-below" 
+        if bull_fvg
+            avg = math.avg(low,high[2]) //use this if you want your entry in the middle of FVG
+            //avg=low //use this if you want your entry exactly in the high of FVG
+            box.new(n +3, low, n-2, high[2], na, bgcolor = bullCss) //FVG
+            box.new(n +3, (avg-low[2])*3+avg, n+1, avg, na, bgcolor = tpCss) //TP (RRR=3)
+            box.new(n +3, low[2], n+1, avg, na, bgcolor = slCss) //SL
 
-    else if patternFound and pattern=="Reversal-top"
-        avg = math.avg(high,low[2])
-        box.new(n +3, high, n-2, low[2], na, bgcolor = bearCss) //FVG
-        box.new(n +3, (avg-high[2])*3+avg, n+1, avg, na, bgcolor = tpCss) //TP (RRR=3)
-        box.new(n +3, high[2], n+1, avg, na, bgcolor = slCss) //SL
+    if patternFound and pattern=="Reversal-top"
+        if bear_fvg
+            avg = math.avg(high,low[2])
+            box.new(n +3, high, n-2, low[2], na, bgcolor = bearCss) //FVG
+            box.new(n +3, (avg-high[2])*3+avg, n+1, avg, na, bgcolor = tpCss) //TP (RRR=3)
+            box.new(n +3, high[2], n+1, avg, na, bgcolor = slCss) //SL
 
     //extend lines of liquidity grabs to SB session
     line.set_y1(highLiquidityLine, max) 
@@ -152,9 +155,9 @@ plotchar(
 //-----------------------------------------------------------------------------
 //Labels
 //-----------------------------------------------------------------------------
-labels(LDOAM, LDOAMCss, '3:00-4:00 AM \n Pattern found: '+pattern + '\n Max: '+str.tostring(max)+ '\n Min: '+str.tostring(min))
-labels(NYLAM, NYLAMCss, '10:00-11:00 AM \n Pattern found: '+pattern + '\n Max: '+str.tostring(max)+ '\n Min: '+str.tostring(min))
-labels(NYEPM, NYEPMCss, '2:00-3:00 PM \n Pattern found: '+pattern + '\n Max: '+str.tostring(max)+ '\n Min: '+str.tostring(min))
+labels(LDOAM, LDOAMCss, '3:00-4:00 AM \n Pattern found: '+pattern + patternInfo + '\n Max: '+str.tostring(max)+ '\n Min: '+str.tostring(min))
+labels(NYLAM, NYLAMCss, '10:00-11:00 AM \n Pattern found: '+pattern + patternInfo +  '\n Max: '+str.tostring(max)+ '\n Min: '+str.tostring(min))
+labels(NYEPM, NYEPMCss, '2:00-3:00 PM \n Pattern found: '+pattern + patternInfo +  '\n Max: '+str.tostring(max)+ '\n Min: '+str.tostring(min))
 
 //display info on the upper right corner
 if barstate.islast
