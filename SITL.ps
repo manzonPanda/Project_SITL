@@ -43,6 +43,8 @@ float barLow = na
 var string pattern = na
 var string patternInfo = na
 var bool patternFound = na
+var bool firstBearFVG = na
+var bool firstBullFVG = na
 // Update times with UTC Offset - use in labels
 utc_offset = input.int(-5, title="UTC Offset", minval=-12, maxval=12, tooltip="Select UTC offset for New York local time. In summer it is -4, in winter -5")
 LDOAMCss  = input.color(color.new(#00bcd4, 90), '', inline = 'LDOAM', group = 'time zone')
@@ -88,6 +90,8 @@ if startHrBeforeSB //find max and min 1hr before SB
     lowLiquidityLine:= line.new(n,na,na,na, color = lGcss, style = line.style_dotted, width = 3)
     patternFound:= false
     //pattern:=""
+    firstBearFVG:=false
+    firstBullFVG:=false
 
 if strSB
     line.new(bar_index, close, bar_index, close + 10, color= col_SB, extend=extend.both,width = 3)
@@ -117,7 +121,8 @@ if is_in_SB
         patternFound:=true
 
     if patternFound and pattern=="Reversal-below" 
-        if bull_fvg
+        if bull_fvg and not firstBullFVG
+            firstBullFVG:=true //find only the first bullish FVG
             avg = math.avg(low,high[2]) //use this if you want your entry in the middle of FVG
             //avg=low //use this if you want your entry exactly in the high of FVG
             box.new(n +3, low, n-2, high[2], na, bgcolor = bullCss) //FVG
@@ -125,7 +130,8 @@ if is_in_SB
             box.new(n +3, low[2], n+1, avg, na, bgcolor = slCss) //SL
 
     if patternFound and pattern=="Reversal-top"
-        if bear_fvg
+        if bear_fvg and not firstBearFVG
+            firstBearFVG:=true //find only the first bearish FVG
             avg = math.avg(high,low[2])
             box.new(n +3, high, n-2, low[2], na, bgcolor = bearCss) //FVG
             box.new(n +3, (avg-high[2])*3+avg, n+1, avg, na, bgcolor = tpCss) //TP (RRR=3)
