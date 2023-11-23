@@ -1,6 +1,6 @@
 // @version=5 
-indicator("PROJECT SITL [JAKE]", max_lines_count=500, max_boxes_count=500, max_labels_count=500, overlay=true)
-
+//indicator("PROJECT SITL [JAKE]", max_lines_count=500, max_boxes_count=500, max_labels_count=500, overlay=true)
+strategy(title="PROJECT SITL [JAKE]", initial_capital=10000 ,default_qty_type=strategy.percent_of_equity, default_qty_value=3000)
 method timeSess(string timezone, string session) => time(timeframe.period, session, timezone) 
 var tab  = table.new(position = position.top_right, columns = 1, rows = 1, bgcolor = color(color.rgb(2, 55, 124)), border_width = 1)
 
@@ -43,8 +43,9 @@ float barLow = na
 var string pattern = na
 var string patternInfo = na
 var bool patternFound = na
-var bool firstBearFVG = na
+var int firstBearFVG = 1
 var bool firstBullFVG = na
+var float avg = na
 // Update times with UTC Offset - use in labels
 utc_offset = input.int(-5, title="UTC Offset", minval=-12, maxval=12, tooltip="Select UTC offset for New York local time. In summer it is -4, in winter -5")
 LDOAMCss  = input.color(color.new(#00bcd4, 90), '', inline = 'LDOAM', group = 'time zone')
@@ -90,7 +91,7 @@ if startHrBeforeSB //find max and min 1hr before SB
     lowLiquidityLine:= line.new(n,na,na,na, color = lGcss, style = line.style_dotted, width = 3)
     patternFound:= false
     //pattern:=""
-    firstBearFVG:=false
+    //firstBearFVG:=false
     firstBullFVG:=false
 
 if strSB
@@ -108,6 +109,7 @@ if is_in_hr_before_SB
     line.set_xy2(highLiquidityLine, n, max)
     line.set_y1(lowLiquidityLine, min) 
     line.set_xy2(lowLiquidityLine, n, min)
+    firstBearFVG:=1
 
 //draw FVGs only in the inside of SB timezone
 if is_in_SB
@@ -130,13 +132,35 @@ if is_in_SB
             box.new(n +3, low[2], n+1, avg, na, bgcolor = slCss) //SL
 
     if patternFound and pattern=="Reversal-top"
-        if bear_fvg and not firstBearFVG
-            firstBearFVG:=true //find only the first bearish FVG
-            avg = math.avg(high,low[2])
+        if bear_fvg and firstBearFVG !=0
+            //firstBearFVG:=true //find only the first bearish FVG
+           
+            avg = math.avg(high,low[2]) //use this if you want your entry in the middle of FVG
             box.new(n +3, high, n-2, low[2], na, bgcolor = bearCss) //FVG
             box.new(n +3, (avg-high[2])*3+avg, n+1, avg, na, bgcolor = tpCss) //TP (RRR=3)
             box.new(n +3, high[2], n+1, avg, na, bgcolor = slCss) //SL
+            // *** Risk management sample*** 
+            //entry_price = close 
+            //percent_diff = 5
+            //rrr = 2
+            //stop_loss_price = (1 percent_diff / 100.) entry_price
+            //take_profit_price = (1 + rrr * percent_diff / 100.) * entry_price
+            //SL in ticks = (entry_price - stop_loss_price)/syminfo.mintick
+            //TP in ticks =(take_profit_price - entry_price)/syminfo.mintick
+            //***************************//
+            sl_in_ticks=(high[2] - avg)/syminfo.mintick
+            tp_in_ticks=(avg-((avg-high[2])*3+avg))/syminfo.mintick
+            strategy.entry(id = str.tostring(n), direction = strategy.short , limit = avg, comment = "entered at "+str.tostring(avg))
+            strategy.exit(id = "Exit" , from_entry = str.tostring(n), stop = high[2], profit = tp_in_ticks, 
+             comment_profit="TP hit @ "+str.tostring((avg-high[2])*3+avg),comment_loss="SL hit @ "+str.tostring(high[2]) )
+            firstBearFVG:=  firstBearFVG-1
 
+    //if firstBearFVG > 0
+        //strategy.entry(id = "firstBearishEntry", direction = strategy.short , limit = avg, comment = "entered at "+str.tostring(low[2]))
+        //strategy.exit(id = "sl entry", from_entry = "firstBearishEntry", stop =low[2])
+        //firstBearFVG:=false
+        
+            
     //extend lines of liquidity grabs to SB session
     line.set_y1(highLiquidityLine, max) 
     line.set_xy2(highLiquidityLine, n, max)
