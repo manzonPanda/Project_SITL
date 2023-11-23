@@ -136,10 +136,15 @@ if is_in_SB
             //firstBearFVG:=true //find only the first bearish FVG
            
             avg = math.avg(high,low[2]) //use this if you want your entry in the middle of FVG
+            stopLoss=high[2] //tick of the first bar 
+            //addedSL= (syminfo.mintick*10)*20
+            addedSL= 1.3
+            finalSL=stopLoss+addedSL //TP (RRR=3)
+            takeProfit=(avg-high[2])*3+avg
             box.new(n +3, high, n-2, low[2], na, bgcolor = bearCss) //FVG
-            box.new(n +3, (avg-high[2])*3+avg, n+1, avg, na, bgcolor = tpCss) //TP (RRR=3)
-            box.new(n +3, high[2], n+1, avg, na, bgcolor = slCss) //SL
-            // *** Risk management sample*** 
+            box.new(n +3, takeProfit, n+1, avg, na, bgcolor = tpCss) //TP (RRR=3)
+            box.new(n +3, stopLoss+addedSL, n+1, avg, na, bgcolor = slCss) //SL
+            // *** Risk management sample*** //
             //entry_price = close 
             //percent_diff = 5
             //rrr = 2
@@ -148,11 +153,11 @@ if is_in_SB
             //SL in ticks = (entry_price - stop_loss_price)/syminfo.mintick
             //TP in ticks =(take_profit_price - entry_price)/syminfo.mintick
             //***************************//
-            sl_in_ticks=(high[2] - avg)/syminfo.mintick
-            tp_in_ticks=(avg-((avg-high[2])*3+avg))/syminfo.mintick
+            sl_in_ticks=(finalSL - avg)/syminfo.mintick
+            tp_in_ticks=(avg-takeProfit)/syminfo.mintick
             strategy.entry(id = str.tostring(n), direction = strategy.short , limit = avg, comment = "entered at "+str.tostring(avg))
-            strategy.exit(id = "Exit" , from_entry = str.tostring(n), stop = high[2], profit = tp_in_ticks, 
-             comment_profit="TP hit @ "+str.tostring((avg-high[2])*3+avg),comment_loss="SL hit @ "+str.tostring(high[2]) )
+            strategy.exit(id = "Exit" , from_entry = str.tostring(n), stop = finalSL, profit = tp_in_ticks, 
+             comment_profit="TP hit @ "+str.tostring(takeProfit),comment_loss="SL hit @ "+str.tostring(finalSL) )
             firstBearFVG:=  firstBearFVG-1
 
     //if firstBearFVG > 0
