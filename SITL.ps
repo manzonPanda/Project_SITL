@@ -1,6 +1,6 @@
 // @version=5 
 //indicator("PROJECT SITL [JAKE]", max_lines_count=500, max_boxes_count=500, max_labels_count=500, overlay=true)
-strategy(title="PROJECT SITL [JAKE]", initial_capital=10000 ,default_qty_type=strategy.percent_of_equity, default_qty_value=3000)
+strategy(title="PROJECT SITL [JAKE]", initial_capital=10000 ,default_qty_type=strategy.percent_of_equity, default_qty_value=1250)
 method timeSess(string timezone, string session) => time(timeframe.period, session, timezone) 
 var tab  = table.new(position = position.top_right, columns = 1, rows = 1, bgcolor = color(color.rgb(2, 55, 124)), border_width = 1)
 
@@ -44,7 +44,7 @@ var string pattern = na
 var string patternInfo = na
 var bool patternFound = na
 var int firstBearFVG = 1
-var bool firstBullFVG = na
+var int firstBullFVG = 1
 var float avg = na
 // Update times with UTC Offset - use in labels
 utc_offset = input.int(-5, title="UTC Offset", minval=-12, maxval=12, tooltip="Select UTC offset for New York local time. In summer it is -4, in winter -5")
@@ -91,8 +91,6 @@ if startHrBeforeSB //find max and min 1hr before SB
     lowLiquidityLine:= line.new(n,na,na,na, color = lGcss, style = line.style_dotted, width = 3)
     patternFound:= false
     //pattern:=""
-    //firstBearFVG:=false
-    firstBullFVG:=false
 
 if strSB
     line.new(bar_index, close, bar_index, close + 10, color= col_SB, extend=extend.both,width = 3)
@@ -110,6 +108,7 @@ if is_in_hr_before_SB
     line.set_y1(lowLiquidityLine, min) 
     line.set_xy2(lowLiquidityLine, n, min)
     firstBearFVG:=1
+    firstBullFVG:=1
 
 //draw FVGs only in the inside of SB timezone
 if is_in_SB
@@ -123,27 +122,33 @@ if is_in_SB
         patternFound:=true
 
     if patternFound and pattern=="Reversal-below" 
-        if bull_fvg and not firstBullFVG
-            firstBullFVG:=true //find only the first bullish FVG
-            avg = math.avg(low,high[2]) //use this if you want your entry in the middle of FVG
-            //avg=low //use this if you want your entry exactly in the high of FVG
+        if bull_fvg and firstBullFVG !=0
+            entry_price = math.avg(low,high[2]) //use this if you want your entry in the middle of FVG
+            stopLoss=low[2]
+            addedSL= 1.3
+            finalSL=stopLoss-addedSL 
+            takeProfit=(entry_price-finalSL)*1+entry_price //TP (RRR=1)
             box.new(n +3, low, n-2, high[2], na, bgcolor = bullCss) //FVG
-            box.new(n +3, (avg-low[2])*3+avg, n+1, avg, na, bgcolor = tpCss) //TP (RRR=3)
-            box.new(n +3, low[2], n+1, avg, na, bgcolor = slCss) //SL
+            box.new(n +3, takeProfit, n+1, entry_price, na, bgcolor = tpCss) //TP (RRR=3)
+            box.new(n +3, finalSL, n+1, entry_price, na, bgcolor = slCss) //SL
+            sl_in_ticks=(finalSL - entry_price)/syminfo.mintick
+            tp_in_ticks=(takeProfit-entry_price)/syminfo.mintick
+            strategy.entry(id = str.tostring(n), direction = strategy.long , limit = entry_price, comment = "entered at "+str.tostring(entry_price))
+            strategy.exit(id = "Exit" , from_entry = str.tostring(n), stop = finalSL, profit = tp_in_ticks, 
+             comment_profit="TP hit @ "+str.tostring(takeProfit),comment_loss="SL hit @ "+str.tostring(finalSL) )
+            firstBullFVG:= firstBullFVG-1
 
     if patternFound and pattern=="Reversal-top"
         if bear_fvg and firstBearFVG !=0
-            //firstBearFVG:=true //find only the first bearish FVG
-           
             avg = math.avg(high,low[2]) //use this if you want your entry in the middle of FVG
             stopLoss=high[2] //tick of the first bar 
             //addedSL= (syminfo.mintick*10)*20
             addedSL= 1.3
-            finalSL=stopLoss+addedSL //TP (RRR=3)
-            takeProfit=(avg-high[2])*3+avg
+            finalSL=stopLoss+addedSL 
+            takeProfit=(avg-finalSL)*1+avg //TP (RRR=1)
             box.new(n +3, high, n-2, low[2], na, bgcolor = bearCss) //FVG
             box.new(n +3, takeProfit, n+1, avg, na, bgcolor = tpCss) //TP (RRR=3)
-            box.new(n +3, stopLoss+addedSL, n+1, avg, na, bgcolor = slCss) //SL
+            box.new(n +3, finalSL, n+1, avg, na, bgcolor = slCss) //SL
             // *** Risk management sample*** //
             //entry_price = close 
             //percent_diff = 5
@@ -200,6 +205,6 @@ if barstate.islast
         true
 
 //table.cell(tab, 0, 0, text = 'Max: '+max , text_color=#fcfcfc)
-table.cell(tab, 0, 0, text = 'Price: ' + str.tostring(close) +'\n' +'Max: '+str.tostring(max) +'\n' +'Min: '+str.tostring(min), text_color=#fcfcfc)
+table.cell(tab, 0, 0, text = 'Price: ' + str.tostring(close) +'\n' +'Max: '+str.tostring(max) +'\n' +'Min: '+str.tostring(min) +'\n mintick: '+str.tostring(syminfo.mintick), text_color=#fcfcfc)
 
 
