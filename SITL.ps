@@ -1,6 +1,6 @@
 // @version=5 
 //indicator("PROJECT SITL [JAKE]", max_lines_count=500, max_boxes_count=500, max_labels_count=500, overlay=true)
-strategy(title="PROJECT SITL [JAKE]", initial_capital=10000 ,default_qty_type=strategy.percent_of_equity, default_qty_value=1250)
+strategy(title="PROJECT SITL [JAKE]", initial_capital=100000 ,default_qty_type=strategy.percent_of_equity, default_qty_value=1250)
 method timeSess(string timezone, string session) => time(timeframe.period, session, timezone) 
 var tab  = table.new(position = position.top_right, columns = 1, rows = 1, bgcolor = color(color.rgb(2, 55, 124)), border_width = 1)
 
@@ -89,6 +89,12 @@ addToSL()=>
     else if syminfo.type=="forex"
         var float price = 0.00003
 
+addSpreads()=>
+    if syminfo.type=="index"
+        var float price = 1
+    else if syminfo.type=="forex"
+        var float price = 0.00005
+
 if startHrBeforeSB //find max and min 1hr before SB
     max := high //for getting the highest price 1hr before session
     min := low //for getting the lowest price 1hr before session
@@ -103,6 +109,7 @@ if strSB
   
 if endSB
     line.new(bar_index, close, bar_index, close + 10, color= col_SB, extend=extend.both,width = 3)
+    //patternFound:= false
 
 if is_in_hr_before_SB
     tempMax = math.max(high, max) //check if there is a new high
@@ -139,12 +146,13 @@ if is_in_SB
 
     if patternFound and pattern=="Reversal-below" 
         if bull_fvg and firstBullFVG !=0
+            entry_price = low+addSpreads() //use this if you want your entry ABOVE the upper base of FVG (for spreads)
+            //entry_price = low //use this if you want your entry in the upper base of FVG
             //entry_price = math.avg(low,high[2]) //use this if you want your entry in the middle of FVG
-            entry_price = low //use this if you want your entry in the upper base of FVG
             stopLoss=low[2]
             addedSL= addToSL()
             finalSL=stopLoss-addedSL 
-            takeProfit=(entry_price-finalSL)*1+entry_price //TP (RRR=1)
+            takeProfit=(entry_price-finalSL)*1.5+entry_price //TP (RRR=1)
             box.new(n +3, low, n-2, high[2], na, bgcolor = bullCss) //FVG
             box.new(n +3, takeProfit, n+1, entry_price, na, bgcolor = tpCss) //TP (RRR=3)
             box.new(n +3, finalSL, n+1, entry_price, na, bgcolor = slCss) //SL
@@ -157,12 +165,13 @@ if is_in_SB
 
     if patternFound and pattern=="Reversal-top"
         if bear_fvg and firstBearFVG !=0
+            entry_price = low+addSpreads() //use this if you want your entry ABOVE the upper base of FVG (for spreads)
+            //entry_price = high //use this if you want your entry in the lower base of FVG
             //entry_price = math.avg(high,low[2]) //use this if you want your entry in the middle of FVG
-            entry_price = high //use this if you want your entry in the lower base of FVG
             stopLoss=high[2] //tick of the first bar 
             addedSL= addToSL()
             finalSL=stopLoss+addedSL 
-            takeProfit=(entry_price-finalSL)*1+entry_price //TP (RRR=1)
+            takeProfit=(entry_price-finalSL)*1.5+entry_price //TP (RRR=1)
             box.new(n +3, high, n-2, low[2], na, bgcolor = bearCss) //FVG
             box.new(n +3, takeProfit, n+1, entry_price, na, bgcolor = tpCss) //TP (RRR=3)
             box.new(n +3, finalSL, n+1, entry_price, na, bgcolor = slCss) //SL
