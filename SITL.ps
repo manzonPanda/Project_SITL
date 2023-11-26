@@ -46,6 +46,8 @@ var bool patternFound = na
 var int firstBearFVG = 1
 var int firstBullFVG = 1
 var float avg = na
+var bool drawDownArrow = false
+var bool drawUpArrow = false
 // Update times with UTC Offset - use in labels
 utc_offset = input.int(-5, title="UTC Offset", minval=-12, maxval=12, tooltip="Select UTC offset for New York local time. In summer it is -4, in winter -5")
 LDOAMCss  = input.color(color.new(#00bcd4, 90), '', inline = 'LDOAM', group = 'time zone')
@@ -59,7 +61,7 @@ NYEPM  = time(timeframe.period, "1400-1500", "UTC" + (utc_offset >= 0 ? "+" : ""
 //-----------------------------------------------------------------------------
 //Functions
 //-----------------------------------------------------------------------------
-labels(session, css, txt)=>
+labels(session, css, txt,patternInfo)=>
     var label lbl = na
     var float max = na 
     var int anchor = na
@@ -79,7 +81,8 @@ labels(session, css, txt)=>
     
     if session
         max := math.max(high, max)
-        label.set_text(lbl, txt) //update also the label text
+        if drawDownArrow or drawUpArrow
+            label.set_text(lbl, txt+'\n  FVG: '+ str.format_time(time, "HH:mm z", "America/New_York")) //update also the label text if and only if FVG found
         label.set_x(lbl, int(math.avg(time, anchor)))
         label.set_y(lbl, (syminfo.type=="index") ?  max+5:max+0.00005 )
 
@@ -112,7 +115,6 @@ if strSB
     line.set_xy2(highLiquidityLine, n+59, max)
     line.set_y1(lowLiquidityLine, min) 
     line.set_xy2(lowLiquidityLine, n+59, min)
-
 if endSB
     line.new(bar_index, close, bar_index, close + 10, color= col_SB, extend=extend.both,width = 3)
     //patternFound:= false
@@ -152,6 +154,7 @@ if is_in_SB
 
     if patternFound and pattern=="Reversal-below" 
         if bull_fvg and firstBullFVG !=0
+            drawUpArrow:= true
             entry_price = low+addSpreads() //use this if you want your entry ABOVE the upper base of FVG (for spreads)
             //entry_price = low //use this if you want your entry in the upper base of FVG
             //entry_price = math.avg(low,high[2]) //use this if you want your entry in the middle of FVG
@@ -171,7 +174,8 @@ if is_in_SB
 
     if patternFound and pattern=="Reversal-top"
         if bear_fvg and firstBearFVG !=0
-            entry_price = low+addSpreads() //use this if you want your entry ABOVE the upper base of FVG (for spreads)
+            drawDownArrow := true
+            entry_price = high+addSpreads() //use this if you want your entry ABOVE the upper base of FVG (for spreads)
             //entry_price = high //use this if you want your entry in the lower base of FVG
             //entry_price = math.avg(high,low[2]) //use this if you want your entry in the middle of FVG
             stopLoss=high[2] //tick of the first bar 
@@ -207,9 +211,13 @@ plotchar(
 //-----------------------------------------------------------------------------
 //Labels
 //-----------------------------------------------------------------------------
-labels(LDOAM, LDOAMCss, '3:00-4:00 AM \n Pattern found: '+pattern + patternInfo + '\n Max: '+str.tostring(max)+ '\n Min: '+str.tostring(min))
-labels(NYLAM, NYLAMCss, '10:00-11:00 AM \n Pattern found: '+pattern + patternInfo +  '\n Max: '+str.tostring(max)+ '\n Min: '+str.tostring(min))
-labels(NYEPM, NYEPMCss, '2:00-3:00 PM \n Pattern found: '+pattern + patternInfo +  '\n Max: '+str.tostring(max)+ '\n Min: '+str.tostring(min))
+labels(LDOAM, LDOAMCss, '3:00-4:00 AM \n Pattern found: '+pattern + patternInfo + '\n Max: '+str.tostring(max)+ '\n Min: '+str.tostring(min),patternInfo)
+labels(NYLAM, NYLAMCss, '10:00-11:00 AM \n Pattern found: '+pattern + patternInfo + '\n Max: '+str.tostring(max)+ '\n Min: '+str.tostring(min),patternInfo)
+labels(NYEPM, NYEPMCss, '2:00-3:00 PM \n Pattern found: '+pattern + patternInfo  + '\n Max: '+str.tostring(max)+ '\n Min: '+str.tostring(min),patternInfo)
+plotchar(series=drawDownArrow, title="drawDownArrow", color=color.red, char='⬇', size=size.normal,location=location.abovebar)
+plotchar(series=drawUpArrow, title="drawUpArrow", color=color.green, char='⬆', size=size.normal, location=location.belowbar)
+drawDownArrow := false
+drawUpArrow := false
 
 //display info on the upper right corner
 if barstate.islast
