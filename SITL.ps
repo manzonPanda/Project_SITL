@@ -12,6 +12,11 @@ SB_PM_per = "America/New_York".timeSess("1400-1500") // period/session ~ The PM 
 HR_BEFORE_SB_AM_per = "America/New_York".timeSess("0900-1000")
 HR_BEFORE_SB_LN_per = "America/New_York".timeSess("0200-0300")
 HR_BEFORE_SB_PM_per = "America/New_York".timeSess("1300-1400") 
+//2hrs after SB periods, close all pending order
+post_SB_AM_per = "America/New_York".timeSess("1300-1359")
+post_SB_LN_per = "America/New_York".timeSess("0600-0700")
+post_SB_PM_per = "America/New_York".timeSess("1700-1900") 
+
 
 col_SB      = input.color (#6c00d1f5,                '    '               , inline='SB' , group='Show'                        )  
 minT        = syminfo.mintick
@@ -81,8 +86,8 @@ labels(session, css, txt,patternInfo)=>
     
     if session
         max := math.max(high, max)
-        if drawDownArrow or drawUpArrow
-            label.set_text(lbl, txt+'\n  FVG: '+ str.format_time(time, "HH:mm z", "America/New_York")) //update also the label text if and only if FVG found
+        if drawDownArrow or drawUpArrow or patternFound //update also the label text if FVG found or patternFound
+            label.set_text(lbl, txt+'\n  FVG found🕘: '+ str.format_time(time, "HH:mm z", "America/New_York")) 
         label.set_x(lbl, int(math.avg(time, anchor)))
         label.set_y(lbl, (syminfo.type=="index") ?  max+5:max+0.00005 )
 
@@ -90,7 +95,7 @@ addToSL()=>
     if syminfo.type=="index"
         var float price = 1.3
     else if syminfo.type=="forex"
-        var float price = 0.00003
+        var float price = 0.00005
 
 addSpreads()=>
     if syminfo.type=="index"
@@ -155,13 +160,13 @@ if is_in_SB
     if patternFound and pattern=="Reversal-below" 
         if bull_fvg and firstBullFVG !=0
             drawUpArrow:= true
-            entry_price = low+addSpreads() //use this if you want your entry ABOVE the upper base of FVG (for spreads)
+            entry_price = low //use this if you want your entry ABOVE the upper base of FVG (for spreads)
             //entry_price = low //use this if you want your entry in the upper base of FVG
             //entry_price = math.avg(low,high[2]) //use this if you want your entry in the middle of FVG
             stopLoss=low[2]
             addedSL= addToSL()
             finalSL=stopLoss-addedSL 
-            takeProfit=(entry_price-finalSL)*1.5+entry_price //TP (RRR=1)
+            takeProfit=(entry_price-finalSL)*2+entry_price //TP (RRR=1.5)
             box.new(n +3, low, n-2, high[2], na, bgcolor = bullCss) //FVG
             box.new(n +3, takeProfit, n+1, entry_price, na, bgcolor = tpCss) //TP (RRR=3)
             box.new(n +3, finalSL, n+1, entry_price, na, bgcolor = slCss) //SL
@@ -175,13 +180,13 @@ if is_in_SB
     if patternFound and pattern=="Reversal-top"
         if bear_fvg and firstBearFVG !=0
             drawDownArrow := true
-            entry_price = high+addSpreads() //use this if you want your entry ABOVE the upper base of FVG (for spreads)
+            entry_price = high //use this if you want your entry ABOVE the upper base of FVG (for spreads)
             //entry_price = high //use this if you want your entry in the lower base of FVG
             //entry_price = math.avg(high,low[2]) //use this if you want your entry in the middle of FVG
             stopLoss=high[2] //tick of the first bar 
             addedSL= addToSL()
             finalSL=stopLoss+addedSL 
-            takeProfit=(entry_price-finalSL)*1.5+entry_price //TP (RRR=1)
+            takeProfit=(entry_price-finalSL)*2+entry_price //TP (RRR=1.5)
             box.new(n +3, high, n-2, low[2], na, bgcolor = bearCss) //FVG
             box.new(n +3, takeProfit, n+1, entry_price, na, bgcolor = tpCss) //TP (RRR=3)
             box.new(n +3, finalSL, n+1, entry_price, na, bgcolor = slCss) //SL
@@ -192,6 +197,8 @@ if is_in_SB
              comment_profit="TP hit @ "+str.tostring(takeProfit),comment_loss="SL hit @ "+str.tostring(finalSL) )
             firstBearFVG:=  firstBearFVG-1
             
+if post_SB_AM_per or  post_SB_LN_per or post_SB_PM_per //cancel pending orders after 2hrs
+    strategy.cancel_all() 
 
 plotchar(
  series     = not na(SB_LN_per) and na(SB_LN_per[1]),
@@ -225,6 +232,5 @@ if barstate.islast
         true
 
 //table.cell(tab, 0, 0, text = 'Max: '+max , text_color=#fcfcfc)
-table.cell(tab, 0, 0, text = 'Project SITL [Jake]' +'\n mintick: '+str.tostring(syminfo.mintick), text_color=#fcfcfc)
-
+table.cell(tab, 0, 0, text = 'Project SITL [Jake]' + '\nType: ' + str.tostring(syminfo.type) + '\n mintick: '+str.tostring(syminfo.mintick), text_color=#fcfcfc)
 
