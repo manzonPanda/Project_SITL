@@ -1,6 +1,11 @@
 // @version=5 
 //indicator("PROJECT SITL [JAKE]", max_lines_count=500, max_boxes_count=500, max_labels_count=500, overlay=true)
-strategy(title="PROJECT SITL [JAKE]", initial_capital=100000 ,default_qty_type=strategy.percent_of_equity, default_qty_value=1250)
+strategy(title="PROJECT SITL [JAKE]", overlay=true,initial_capital=10000 ,currency = currency.USD, default_qty_type=strategy.cash)
+i_pctStop = input(1., "% of Risk to Starting Equity Use to Size Positions") / 100
+i_tpFactor = input(2, "Factor of stop determining target profit")
+// Save the strat's equity on the first bar, which is equal to initial capital.
+var initialCapital = strategy.equity
+
 method timeSess(string timezone, string session) => time(timeframe.period, session, timezone) 
 var tab  = table.new(position = position.top_right, columns = 1, rows = 1, bgcolor = color(color.rgb(2, 55, 124)), border_width = 1)
 
@@ -172,7 +177,10 @@ if is_in_SB
             box.new(n +3, finalSL, n+1, entry_price, na, bgcolor = slCss) //SL
             sl_in_ticks=(finalSL - entry_price)/syminfo.mintick
             tp_in_ticks=(takeProfit-entry_price)/syminfo.mintick
-            strategy.entry(id = str.tostring(n), direction = strategy.long , limit = entry_price, comment = "entered at "+str.tostring(entry_price))
+            longDiffSL= math.abs(entry_price-finalSL)
+            positionValue = initialCapital * i_pctStop / (longDiffSL / entry_price)
+            positionSize = positionValue / entry_price
+            strategy.entry(id = str.tostring(n), qty=positionSize, direction = strategy.long , limit = entry_price, comment = "entered at "+str.tostring(entry_price))
             strategy.exit(id = "Exit" , from_entry = str.tostring(n), stop = finalSL, profit = tp_in_ticks, 
              comment_profit="TP hit @ "+str.tostring(takeProfit),comment_loss="SL hit @ "+str.tostring(finalSL) )
             firstBullFVG:= firstBullFVG-1
@@ -192,7 +200,10 @@ if is_in_SB
             box.new(n +3, finalSL, n+1, entry_price, na, bgcolor = slCss) //SL
             sl_in_ticks=(finalSL - entry_price)/syminfo.mintick
             tp_in_ticks=(entry_price-takeProfit)/syminfo.mintick
-            strategy.entry(id = str.tostring(n), direction = strategy.short , limit = entry_price, comment = "entered at "+str.tostring(entry_price))
+            longDiffSL= math.abs(entry_price-finalSL)
+            positionValue = initialCapital * i_pctStop / (longDiffSL / entry_price)
+            positionSize = positionValue / entry_price
+            strategy.entry(id = str.tostring(n), qty=positionSize, direction = strategy.short , limit = entry_price, comment = "entered at "+str.tostring(entry_price))
             strategy.exit(id = "Exit" , from_entry = str.tostring(n), stop = finalSL, profit = tp_in_ticks, 
              comment_profit="TP hit @ "+str.tostring(takeProfit),comment_loss="SL hit @ "+str.tostring(finalSL) )
             firstBearFVG:=  firstBearFVG-1
@@ -232,5 +243,5 @@ if barstate.islast
         true
 
 //table.cell(tab, 0, 0, text = 'Max: '+max , text_color=#fcfcfc)
-table.cell(tab, 0, 0, text = 'Project SITL [Jake]' + '\nType: ' + str.tostring(syminfo.type) + '\n mintick: '+str.tostring(syminfo.mintick), text_color=#fcfcfc)
+table.cell(tab, 0, 0, text = 'Project SITL [Jake]' + '\n Date: Nov. 8, 2023'+ '\nType: ' + str.tostring(syminfo.type) + '\n mintick: '+str.tostring(syminfo.mintick), text_color=#fcfcfc)
 

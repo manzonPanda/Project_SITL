@@ -1,0 +1,47 @@
+//@version=4
+strategy("TEST MACD DEFAULT", shorttitle="MACD", overlay=true, precision = 4, initial_capital=1000, default_qty_type=strategy.cash, default_qty_value=10, currency=currency.EUR, process_orders_on_close=true, pyramiding=0)
+i_pctStop = input(1., "% of Risk to Starting Equity Use to Size Positions") / 100
+i_tpFactor = input(1.5, "Factor of stop determining target profit")
+
+// Save the strat's equity on the first bar, which is equal to initial capital.
+var initialCapital = strategy.equity
+
+// MACD
+[macdLine, signalLine, _] = macd(close, 12, 26, 9)
+
+// EMA 200
+ema = ema(close, 200)
+plot(ema, title="EMA 200", color=color.yellow, linewidth=2)
+
+// LONG CONDITIONS
+longCheckCondition = barssince(crossover(macdLine, signalLine))
+longCondition1 = longCheckCondition <= 3 ? true : false
+longCondition2 = macdLine < 0 and signalLine < 0
+longCondition3 = close > ema
+longCondition = longCondition1 and longCondition2 and longCondition3 and strategy.opentrades == 0
+
+// STOP LOSS
+float longSL = na
+longSL := longCondition ? lowest(low, 11)[1] : longSL[1]
+
+// TAKE PROFIT
+     = close
+longDiffSL = abs(longEntryPrice - longSL)
+float longTP = na
+longTP := longCondition ? close + (i_tpFactor * longDiffSL) : longTP[1]
+
+positionValue = initialCapital * i_pctStop / (longDiffSL / longEntryPrice)
+positionSize = positionValue / longEntryPrice
+
+// ENTRY/EXIT
+if longCondition
+    strategy.entry("LONG", strategy.long, qty=positionSize)
+    strategy.exit("EXIT LONG","LONG", stop=longSL, limit=longTP)
+
+// PLOT STOP LOSS
+longPlotSL = strategy.opentrades > 0 and strategy.position_size > 0 ? longSL : na
+plot(longPlotSL, title='LONG STOP LOSS', linewidth=2, style=plot.style_linebr, color=color.red)
+
+// PLOT TAKE PROFIT
+longPlotTP = strategy.opentrades > 0 and strategy.position_size > 0 ? longTP : na
+plot(longPlotTP, title='LONG TAKE PROFIT', linewidth=2, style=plot.style_linebr, color=color.green)
