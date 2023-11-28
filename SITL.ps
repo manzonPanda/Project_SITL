@@ -232,8 +232,8 @@ plotchar(
 labels(LDOAM, LDOAMCss, '3:00-4:00 AM \n Pattern found: '+pattern + patternInfo + '\n Max: '+str.tostring(max)+ '\n Min: '+str.tostring(min),patternInfo)
 labels(NYLAM, NYLAMCss, '10:00-11:00 AM \n Pattern found: '+pattern + patternInfo + '\n Max: '+str.tostring(max)+ '\n Min: '+str.tostring(min),patternInfo)
 labels(NYEPM, NYEPMCss, '2:00-3:00 PM \n Pattern found: '+pattern + patternInfo  + '\n Max: '+str.tostring(max)+ '\n Min: '+str.tostring(min),patternInfo)
-plotchar(series=drawDownArrow, title="drawDownArrow", color=color.red, char='⬇', size=size.normal,location=location.abovebar)
-plotchar(series=drawUpArrow, title="drawUpArrow", color=color.green, char='⬆', size=size.normal, location=location.belowbar)
+plotchar(series=drawDownArrow, offset=-1, title="drawDownArrow", color=color.red, char='⬇', size=size.normal,location=location.abovebar)
+plotchar(series=drawUpArrow, offset=-1, title="drawUpArrow", color=color.green, char='⬆', size=size.normal, location=location.belowbar)
 drawDownArrow := false
 drawUpArrow := false
 
