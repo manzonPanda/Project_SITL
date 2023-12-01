@@ -1,7 +1,8 @@
 // @version=5 
 //indicator("PROJECT SITL [JAKE]", max_lines_count=500, max_boxes_count=500, max_labels_count=500, overlay=true)
-strategy(title="PROJECT SITL [JAKE]", overlay=true,initial_capital=10000 ,currency = currency.USD, default_qty_type=strategy.cash)
-i_pctStop = input(1., "% of Risk to Starting Equity Use to Size Positions") / 100
+strategy(title="PROJECT SITL [JAKE]", overlay=true,initial_capital=10000 ,currency = currency.USD, default_qty_type=strategy.cash,max_boxes_count=500)
+import protradingart/pta_plot/11 as pp
+i_pctStop = input(0.3, "% of Risk to Starting Equity Use to Size Positions") / 100
 i_tpFactor = input(2, "Factor of stop determining target profit")
 // Save the strat's equity on the first bar, which is equal to initial capital.
 var initialCapital = strategy.equity
@@ -58,6 +59,14 @@ var int firstBullFVG = 1
 var float avg = na
 var bool drawDownArrow = false
 var bool drawUpArrow = false
+var bool isReversalFailed = false
+var array<box> bxUpArr = array.new<box>(0), var array<bool> bxUpArrBool = array.new<bool>(0)
+var array<box> bxDnArr = array.new<box>(0), var array<bool> bxDnArrBool = array.new<bool>(0)
+colDn = input.color(color.new(color.red, 86), "", inline ='2')
+colUp = input.color(color.new(color.blue, 86), "", inline ='1')
+colorNone = color.new(color.white, 100)
+colorGray = color.new(color.gray, 50)
+
 // Update times with UTC Offset - use in labels
 utc_offset = input.int(-5, title="UTC Offset", minval=-12, maxval=12, tooltip="Select UTC offset for New York local time. In summer it is -4, in winter -5")
 LDOAMCss  = input.color(color.new(#00bcd4, 90), '', inline = 'LDOAM', group = 'time zone')
@@ -108,6 +117,24 @@ addSpreads()=>
     else if syminfo.type=="forex"
         var float price = 0.00005
 
+//This stops boxes painting when price passes to or through them
+extendAndRemoveBx(array<box> boxArray, array<bool> boxArrayBool, simple bool isBull) =>  
+    if boxArray.size() > 0
+        for i = boxArray.size() -1 to 0
+            box bx = boxArray.get(i)
+            //bx.set_right(bar_index)
+            //float price = isBull ? bx.get_top() : bx.get_bottom()      
+            float price = isBull ? bx.get_bottom() : bx.get_top()      
+            int m = isBull ? 1 : -1
+            float hiLo = isBull ? high : low  
+            if hiLo * m > price * m //high*1 > top*1 - check if price just hit FVG, not passes through
+                //array.remove(boxArray,i) //remove element in array 
+                //box.delete(bx) //remove box in chart
+                if (pattern=='Reversal-below'and isBull) or (pattern=='Reversal-top'and not isBull) //only show FVGs that is in Continuation trend
+                    //bx.set_bgcolor(colorGray)
+                    boxArrayBool.set(i,true) //make the FVG to true
+
+
 if startHrBeforeSB //find max and min 1hr before SB
     max := high //for getting the highest price 1hr before session
     min := low //for getting the lowest price 1hr before session
@@ -117,6 +144,11 @@ if startHrBeforeSB //find max and min 1hr before SB
     patternFound:= false
     pattern:="na"
     patternInfo:=""
+    isReversalFailed:=false
+    array.clear(id = bxUpArr) //clear array of bull FVGs
+    array.clear(id = bxDnArr) //clear array of bear FVGs
+    array.clear(id = bxUpArrBool) //clear array of bull FVGs bool
+    array.clear(id = bxDnArrBool) //clear array of bear FVGs bool
 
 if strSB
     line.new(bar_index, close, bar_index, close + 10, color= col_SB, extend=extend.both,width = 3)
@@ -128,6 +160,7 @@ if strSB
 if endSB
     line.new(bar_index, close, bar_index, close + 10, color= col_SB, extend=extend.both,width = 3)
     //patternFound:= false
+    isReversalFailed:=false
 
 if is_in_hr_before_SB
     tempMax = math.max(high, max) //check if there is a new high
@@ -151,6 +184,13 @@ if is_in_SB
         pattern:="Reversal-top"
         patternInfo:= ' ('+ str.tostring(high) +'>' + str.tostring(max) +')'
         patternFound:=true
+
+    if bear_fvg //put all bear FVG found in array(bxDnArr)
+        bxDnArr.push(box.new(bar_index-2, low[2], bar_index, high, bgcolor = colorNone , border_color = colorNone,text_valign=text.align_bottom,text_halign = text.align_right,text_size = size.small)) //left,top,right,bottom,bgcolor..
+        bxDnArrBool.push(false) //for tracking purposes if FVG hit
+    if bull_fvg //put all bull FVG found in array(bxUpArr)
+        bxUpArr.push(box.new(bar_index-2, low, bar_index, high[2], bgcolor = colorNone, border_color = colorNone,text_valign=text.align_bottom,text_halign = text.align_right,text_size = size.small))
+        bxUpArrBool.push(false) //for tracking purposes if FVG hit
 
     // *** Risk management sample*** //
     //entry_price = close 
@@ -207,7 +247,30 @@ if is_in_SB
             strategy.exit(id = "Exit" , from_entry = str.tostring(n), stop = finalSL, profit = tp_in_ticks, 
              comment_profit="TP hit @ "+str.tostring(takeProfit),comment_loss="SL hit @ "+str.tostring(finalSL) )
             firstBearFVG:=  firstBearFVG-1
-            
+
+//if the closed trade is within an hour AND profit is loss AND inside SB, look for continuation
+if (bar_index - strategy.closedtrades.entry_bar_index(strategy.closedtrades-1) < 60 and strategy.closedtrades.profit(strategy.closedtrades-1) < 0) and (LDOAM or NYLAM or NYEPM)    //if entry is loss and inside SB
+    isReversalFailed:= true
+    labels(LDOAM, LDOAMCss, '\n Reversal failed',patternInfo)
+    labels(NYLAM, NYLAMCss, '\n Reversal failed' + '\n Min: '+str.tostring(min),patternInfo)
+    labels(NYEPM, NYEPMCss, '\n Reversal failed'+ '\n Min: '+str.tostring(min),patternInfo)
+
+    //look for continuation - show all hidden FVGs
+    if pattern=='Reversal-top' //show all bull FVGs
+        for i = 0 to bxUpArr.size()-1
+            box bx = bxUpArr.get(i)
+            if bxUpArrBool.get(i) == false //if FVG does not hit yet
+                bx.set_bgcolor(color.green)
+            else                            //if FVG hit
+                bx.set_bgcolor(colorGray)
+    if pattern=='Reversal-below' //show all bear FVGs
+        for i = 0 to bxDnArr.size()-1
+            box bx = bxDnArr.get(i)
+            if bxDnArrBool.get(i) == false  //if FVG does not hit yet
+                bx.set_bgcolor(color.red)
+            else                            //if FVG hit
+                bx.set_bgcolor(colorGray)
+
 if post_SB_AM_per or  post_SB_LN_per or post_SB_PM_per //cancel pending orders after 2hrs
     strategy.cancel_all() 
 
@@ -232,6 +295,9 @@ plotchar(
 labels(LDOAM, LDOAMCss, '3:00-4:00 AM \n Pattern found: '+pattern + patternInfo + '\n Max: '+str.tostring(max)+ '\n Min: '+str.tostring(min),patternInfo)
 labels(NYLAM, NYLAMCss, '10:00-11:00 AM \n Pattern found: '+pattern + patternInfo + '\n Max: '+str.tostring(max)+ '\n Min: '+str.tostring(min),patternInfo)
 labels(NYEPM, NYEPMCss, '2:00-3:00 PM \n Pattern found: '+pattern + patternInfo  + '\n Max: '+str.tostring(max)+ '\n Min: '+str.tostring(min),patternInfo)
+extendAndRemoveBx(bxDnArr,bxDnArrBool, true) //for bull FVGs
+extendAndRemoveBx(bxUpArr,bxUpArrBool, false) //for bear FVGs
+
 plotchar(series=drawDownArrow, offset=-1, title="drawDownArrow", color=color.red, char='⬇', size=size.normal,location=location.abovebar)
 plotchar(series=drawUpArrow, offset=-1, title="drawUpArrow", color=color.green, char='⬆', size=size.normal, location=location.belowbar)
 drawDownArrow := false
@@ -243,5 +309,6 @@ if barstate.islast
         true
 
 //table.cell(tab, 0, 0, text = 'Max: '+max , text_color=#fcfcfc)
-table.cell(tab, 0, 0, text = 'Project SITL [Jake]' + '\n Date: Nov. 8, 2023'+ '\nType: ' + str.tostring(syminfo.type) + '\n mintick: '+str.tostring(syminfo.mintick), text_color=#fcfcfc)
+table.cell(tab, 0, 0, text = 'Project SITL [Jake]' + '\n Date: Nov. 8, 2023'+ '\nType: ' + str.tostring(syminfo.type) + 
+ '\n mintick: '+str.tostring(syminfo.mintick)+ '\n'+str.tostring(strategy.closedtrades.profit(strategy.closedtrades-1)), text_color=#fcfcfc)
 
