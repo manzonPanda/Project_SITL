@@ -203,7 +203,7 @@ if is_in_SB
     //***************************//
 
     if patternFound and pattern=="Reversal-below" 
-        if bull_fvg and firstBullFVG !=0
+        if bull_fvg and firstBullFVG !=0 and (low-high[2] > 2*syminfo.mintick)
             drawUpArrow:= true
             entry_price = low //use this if you want your entry ABOVE the upper base of FVG (for spreads)
             //entry_price = low //use this if you want your entry in the upper base of FVG
@@ -225,8 +225,8 @@ if is_in_SB
              comment_profit="TP hit @ "+str.tostring(takeProfit),comment_loss="SL hit @ "+str.tostring(finalSL) )
             firstBullFVG:= firstBullFVG-1
 
-    if patternFound and pattern=="Reversal-top"
-        if bear_fvg and firstBearFVG !=0
+    if patternFound and pattern=="Reversal-top" 
+        if bear_fvg and firstBearFVG !=0 and (low[2]-high > 2*syminfo.mintick)
             drawDownArrow := true
             entry_price = high //use this if you want your entry ABOVE the upper base of FVG (for spreads)
             //entry_price = high //use this if you want your entry in the lower base of FVG
