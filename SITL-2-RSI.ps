@@ -1,8 +1,8 @@
 //@version=5
-//indicator(title="PROJECT SITL 2 [JAKE]", format=format.price, precision=2, timeframe="",timeframe_gaps=true)
-strategy(title="PROJECT SITL 2 [JAKE]", overlay=true,initial_capital=10000 ,currency = currency.USD, default_qty_type=strategy.cash,max_boxes_count=500)
-i_pctStop = input(0.3, "% of Risk to Starting Equity Use to Size Positions") / 100
-var initialCapital = strategy.equity
+indicator(title="PROJECT SITL 2 [JAKE]", format=format.price, precision=2, timeframe="",timeframe_gaps=true)
+//strategy(title="PROJECT SITL 2 [JAKE]", overlay=true,initial_capital=10000 ,currency = currency.USD, default_qty_type=strategy.cash,max_boxes_count=500)
+i_pctStop = input(0.5, "% of Risk to Starting Equity Use to Size Positions") / 100
+// var initialCapital = strategy.equity
 ma(source, length, type) =>
     switch type
         "SMA" => ta.sma(source, length)
@@ -63,7 +63,7 @@ addToSL()=>
 
 
 // Divergence
-lookbackRight = 5 //6 or 7 for high probability
+lookbackRight = 5
 lookbackLeft = 5
 rangeUpper = 60
 rangeLower = 5
@@ -120,11 +120,11 @@ rsiLH = rsi[lookbackRight] < ta.valuewhen(phFound, rsi[lookbackRight], 1) and _i
 priceHH = high[lookbackRight] > ta.valuewhen(phFound, high[lookbackRight], 1)
 
 bearCondAlert = priceHH and rsiLH and phFound
-if bearCondAlert
+if bearCondAlert 
     bearishDivergenceFound :=true
     reversalFirstBearFVG:=1
 
-bearCond = showDivergence and bearCondAlert 
+bearCond = showDivergence and bearCondAlert
 
 plot(
 	 phFound ? rsi[lookbackRight] : na,
@@ -145,28 +145,27 @@ plotshape(
 	 textcolor=textColor
 	 )
 
-if bearishDivergenceFound and bear_fvg and rsi[3] > 55 and reversalFirstBearFVG!=0
-    entry_price = high
-    stopLoss=high[2]
-    addedSL= addToSL()
-    finalSL=stopLoss+addedSL 
-    takeProfit=(entry_price-finalSL)*6+entry_price //TP (RRR=4.2)
-    box.new(n +3, high, n-2, low[2], na, bgcolor = bearCss) //FVG
-    box.new(n +3, takeProfit, n+1, entry_price, na, bgcolor = tpCss) //TP (RRR=4.2)
-    box.new(n +3, finalSL, n+1, entry_price, na, bgcolor = slCss) //SL
-    sl_in_ticks=(finalSL - entry_price)/syminfo.mintick
-    tp_in_ticks=(entry_price-takeProfit)/syminfo.mintick
-    longDiffSL= math.abs(entry_price-finalSL)
-    positionValue = initialCapital * i_pctStop / (longDiffSL / entry_price)
-    positionSize = positionValue / entry_price
-    strategy.entry(id = str.tostring(n), qty=positionSize, direction = strategy.short ,
-     comment=str.tostring(rsi[3]) , limit = entry_price)
-    strategy.exit(id = "Exit" , from_entry = str.tostring(n), stop = finalSL, profit = tp_in_ticks, 
-     comment_profit="TP hit",comment_loss="SL hit")
-    reversalFirstBearFVG:=  reversalFirstBearFVG-1
+// if bearishDivergenceFound and bear_fvg and strategy.opentrades == 0
+//     entry_price = high
+//     stopLoss=high[2]
+//     addedSL= addToSL()
+//     finalSL=stopLoss+addedSL 
+//     takeProfit=(entry_price-finalSL)*6+entry_price //TP (RRR=4.2)
+//     box.new(n +3, high, n-2, low[2], na, bgcolor = bearCss) //FVG
+//     box.new(n +3, takeProfit, n+1, entry_price, na, bgcolor = tpCss) //TP (RRR=4.2)
+//     box.new(n +3, finalSL, n+1, entry_price, na, bgcolor = slCss) //SL
+//     sl_in_ticks=(finalSL - entry_price)/syminfo.mintick
+//     tp_in_ticks=(entry_price-takeProfit)/syminfo.mintick
+//     longDiffSL= math.abs(entry_price-finalSL)
+//     positionValue = initialCapital * i_pctStop / (longDiffSL / entry_price)
+//     positionSize = positionValue / entry_price
+//     strategy.entry(id = str.tostring(n), qty=positionSize, direction = strategy.short , limit = entry_price)
+//     strategy.exit(id = "Exit" , from_entry = str.tostring(n), stop = finalSL, profit = tp_in_ticks, 
+//      comment_profit="TP hit",comment_loss="SL hit")
+//     reversalFirstBearFVG:=  reversalFirstBearFVG-1
 
-if strategy.opentrades > 0
-    bearishDivergenceFound :=false
+// if strategy.opentrades > 0
+//     bearishDivergenceFound :=false
 
 
 // string theMessage = (bullCondAlert) ? "Found Bullish Divergence":"Found Bearish Divergence"
