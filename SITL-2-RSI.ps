@@ -1,5 +1,5 @@
 //@version=5
-indicator(title="PROJECT SITL 2 [JAKE]", format=format.price, precision=2, timeframe="",timeframe_gaps=true)
+indicator(title="PROJECT SITL 2 [JAKE]", format=format.price, precision=2,max_boxes_count=500,overlay=true)
 //strategy(title="PROJECT SITL 2 [JAKE]", overlay=true,initial_capital=10000 ,currency = currency.USD, default_qty_type=strategy.cash,max_boxes_count=500)
 i_pctStop = input(0.5, "% of Risk to Starting Equity Use to Size Positions") / 100
 // var initialCapital = strategy.equity
@@ -12,7 +12,7 @@ ma(source, length, type) =>
         "WMA" => ta.wma(source, length)
         "VWMA" => ta.vwma(source, length)
 
-rsiLengthInput = input.int(14, minval=1, title="RSI Length", group="RSI Settings")
+rsiLengthInput = input.int(11, minval=1, title="RSI Length", group="RSI Settings")
 rsiSourceInput = input.source(close, "Source", group="RSI Settings")
 maTypeInput = input.string("SMA", title="MA Type", options=["SMA", "Bollinger Bands", "EMA", "SMMA (RMA)", "WMA", "VWMA"], group="MA Settings")
 maLengthInput = input.int(14, title="MA Length", group="MA Settings")
@@ -52,6 +52,12 @@ bearCss          = input.color(color.red, 'FVG Level'                , inline = 
 bull_fvg = low > high[2] and close[1] > high[2] and (low-high[2] >= 3*syminfo.mintick) 
 bear_fvg = high < low[2] and close[1] < low[2] and (low[2]-high >= 3*syminfo.mintick)
 
+//draw bearish FVG
+if bear_fvg
+	box.new(n +3, high, n-2, low[2], na, bgcolor = bearCss) //FVG
+
+src = input(title="Source", type=input.source, defval=close)
+plot(src)
 //-----------------------------------------------------------------------------
 //Functions
 //-----------------------------------------------------------------------------
@@ -144,6 +150,8 @@ plotshape(
 	 color=bearColor,
 	 textcolor=textColor
 	 )
+
+
 
 // if bearishDivergenceFound and bear_fvg and strategy.opentrades == 0
 //     entry_price = high
